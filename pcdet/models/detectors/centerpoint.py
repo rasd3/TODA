@@ -1,5 +1,6 @@
 from .detector3d_template import Detector3DTemplate
 
+from pcdet.utils.simplevis import nuscene_vis
 
 class CenterPoint(Detector3DTemplate):
     def __init__(self, model_cfg, num_class, dataset):
@@ -7,6 +8,17 @@ class CenterPoint(Detector3DTemplate):
         self.module_list = self.build_networks()
 
     def forward(self, batch_dict):
+        if False:
+            import cv2
+            b_size = batch_dict['gt_boxes'].shape[0]
+            for b in range(b_size):
+                points = batch_dict['points'][batch_dict['points'][:, 0] ==
+                                              b][:, 1:4].cpu().numpy()
+                gt_boxes = batch_dict['gt_boxes'][b].cpu().numpy().copy()
+                gt_boxes[:, 6] = -gt_boxes[:, 6]
+                det = nuscene_vis(points, gt_boxes)
+                cv2.imwrite('test_gt_%02d.png' % b, det)
+            breakpoint()
         for cur_module in self.module_list:
             batch_dict = cur_module(batch_dict)
 

@@ -13,6 +13,7 @@ from .lyft.lyft_dataset import LyftDataset
 
 from .two_dataset import CutMixDatasetTemplate
 from .cutmix_dataset.waymo_nus_cutmix_dataset import WaymoNusCutMixDataset
+from .polarmix_dataset.waymo_nus_polarmix_dataset import WaymoNusPolarMixDataset
 from .nuscenes.nuscenes_mixup_dataset import NuScenesMixUpDataset
 
 __all__ = {
@@ -24,6 +25,7 @@ __all__ = {
     'LyftDataset': LyftDataset, 
     'CutMixDatasetTemplate': CutMixDatasetTemplate, 
     'WaymoNusCutMixDataset': WaymoNusCutMixDataset, 
+    'WaymoNusPolarMixDataset': WaymoNusPolarMixDataset, 
     'NuScenesMixUpDataset': NuScenesMixUpDataset
 }
 

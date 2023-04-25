@@ -10,7 +10,7 @@ from pcdet.utils import box_utils
 from ...ops.roiaware_pool3d import roiaware_pool3d_utils
 from ...utils import common_utils
 
-class WaymoNusCutMixDataset(CutMixDatasetTemplate):
+class WaymoNusPolarMixDataset(CutMixDatasetTemplate):
     def __init__(self, dataset_cfg=None, training=True, dataset_names=None, logger=None):
         super().__init__(dataset_cfg, training, dataset_names, logger)
 
@@ -145,7 +145,7 @@ class WaymoNusCutMixDataset(CutMixDatasetTemplate):
             index = index * (len(self.waymo_infos) + len(self.nus_infos))
 
         prob = np.random.random(1)
-        if prob < self.dataset_cfg.CUTMIX_PROB:
+        if prob < self.dataset_cfg.POLARMIX_PROB:
             waymo_info = copy.deepcopy(self.waymo_infos[index % len(self.waymo_infos)])
             nus_info = copy.deepcopy(self.nus_infos[index % len(self.nus_infos)])
 

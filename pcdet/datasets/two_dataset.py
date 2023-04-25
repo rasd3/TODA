@@ -10,6 +10,7 @@ from .augmentor.data_augmentor import DataAugmentor
 from .processor.data_processor import DataProcessor
 from .processor.point_feature_encoder import PointFeatureEncoder
 from .processor.inter_domain_point_cutmix import inter_domain_point_cutmix
+from .processor.inter_domain_point_polarmix import inter_domain_point_polarmix
 # from .processor.random_patch_replacement import random_patch_replacement
 # from .processor.point_mixup import pc_mixup
 
@@ -63,6 +64,10 @@ class CutMixDatasetTemplate(torch_data.Dataset):
 
         self.total_epochs = 0
         self._merge_all_iters_to_one_epoch = False
+
+        if self.dataset_cfg.MIX_TYPE == 'polarmix':
+            self.polarmix_rot_copy_num = self.dataset_cfg.POLARMIX_RC_NUM
+
 
         if hasattr(self.data_processor, "depth_downsample_factor"):
             self.depth_downsample_factor = self.data_processor.depth_downsample_factor
@@ -220,11 +225,9 @@ class CutMixDatasetTemplate(torch_data.Dataset):
         assert data_dict_source is not None and data_dict_target is not None
 
         if self.dataset_cfg.MIX_TYPE == 'cutmix':
-            # new_data_dict = random_patch_replacement(data_dict_source, data_dict_target, self.point_cloud_range, self.dataset_cfg.CROP_RANGE_PERCENT)
-            # new_data_dict = random_patch_replacement(data_dict_source, data_dict_target, self.point_cloud_range)
             cutmixed_data_dict = inter_domain_point_cutmix(data_dict_source, data_dict_target, self.point_cloud_range)
-            # print("to here")
-            # new_data_dict_1, new_data_dict_2 = new_data_dict[0], new_data_dict[1]
+        elif self.dataset_cfg.MIX_TYPE == 'polarmix':
+            cutmixed_data_dict = inter_domain_point_polarmix(data_dict_source, data_dict_target, self.polarmix_rot_copy_num)
         else:
             raise NotImplementedError
         
