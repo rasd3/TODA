@@ -76,8 +76,8 @@ DATA_CONFIG:
     DATASET_NAME: 'WaymoNusPolarMixDataset'
     CLASS_NAMES: ['car']
     MIX_TYPE: polarmix
-    POLARMIX_PROB: 0.5
-    POLARMIX_RC_NUM: 1
+    POLARMIX_PROB: 0.3
+    POLARMIX_RC_NUM: 2
     POINT_CLOUD_RANGE: [-54.0, -54.0, -5.0, 54.0, 54.0, 4.8]
 
     DATA_SPLIT: {

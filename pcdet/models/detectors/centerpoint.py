@@ -19,6 +19,7 @@ class CenterPoint(Detector3DTemplate):
                 det = nuscene_vis(points, gt_boxes)
                 cv2.imwrite('test_gt_%02d.png' % b, det)
             breakpoint()
+
         for cur_module in self.module_list:
             batch_dict = cur_module(batch_dict)
 

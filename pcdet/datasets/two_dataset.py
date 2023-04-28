@@ -66,8 +66,8 @@ class CutMixDatasetTemplate(torch_data.Dataset):
         self._merge_all_iters_to_one_epoch = False
 
         if self.dataset_cfg.MIX_TYPE == 'polarmix':
-            self.polarmix_rot_copy_num = self.dataset_cfg.POLARMIX_RC_NUM
-
+            self.polarmix_rot_copy_num = self.dataset_cfg.get('POLARMIX_RC_NUM', 2)
+            self.polarmix_degree = self.dataset_cfg.get('POLARMIX_DEGREE', np.pi)
 
         if hasattr(self.data_processor, "depth_downsample_factor"):
             self.depth_downsample_factor = self.data_processor.depth_downsample_factor
@@ -227,7 +227,9 @@ class CutMixDatasetTemplate(torch_data.Dataset):
         if self.dataset_cfg.MIX_TYPE == 'cutmix':
             cutmixed_data_dict = inter_domain_point_cutmix(data_dict_source, data_dict_target, self.point_cloud_range)
         elif self.dataset_cfg.MIX_TYPE == 'polarmix':
-            cutmixed_data_dict = inter_domain_point_polarmix(data_dict_source, data_dict_target, self.polarmix_rot_copy_num)
+            cutmixed_data_dict = inter_domain_point_polarmix(data_dict_source, data_dict_target,
+                                                             self.polarmix_rot_copy_num,
+                                                             self.polarmix_degree)
         else:
             raise NotImplementedError
         
