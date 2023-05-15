@@ -4,3 +4,4 @@ __pycache__
 pcdet.egg-info
 build/
 output/
+train.sh

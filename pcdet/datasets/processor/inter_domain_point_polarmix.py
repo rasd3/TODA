@@ -16,6 +16,10 @@ from pcdet.utils import box_utils
 from pcdet.ops.roiaware_pool3d import roiaware_pool3d_utils
 from pcdet.ops.iou3d_nms import iou3d_nms_utils
 
+def sig_polar(x):
+    # change range 0~1 -> -1~1, hyperparameter alpha:6
+    return 1/(1+np.exp(-6*(x*2-1)))
+
 def nus_vis(points, boxes=None, img_dir='test.png'):
     import cv2
     from pcdet.utils.simplevis import nuscene_vis
@@ -133,9 +137,30 @@ def polarmix(pts1, labels1, pts2, labels2, alpha, beta, Omega):
 
     return pts_out, labels_out
 
-def inter_domain_point_polarmix(data_dict_source, data_dict_target, polarmix_rot_copy_num, polarmix_degree):
+def inter_domain_point_polarmix(data_dict_source, data_dict_target, polarmix_rot_copy_num, polarmix_degree,
+                                train_percent, update_method):
+    if isinstance(polarmix_degree, float):
+        p_degree = [polarmix_degree, polarmix_degree]
+    elif isinstance(polarmix_degree, list):
+        if len(polarmix_degree) == 1:
+            p_degree = [polarmix_degree[0], polarmix_degree[0]]
+        else:
+            p_degree = [polarmix_degree[0], polarmix_degree[1]]
+
+    if update_method == 'FIX':
+        prand_degree = p_degree[0]
+    elif update_method == 'RAND':
+        prand_degree = np.random.uniform(p_degree[0], p_degree[1])
+    elif update_method == 'ASC':
+        prand_degree = p_degree[0] + (p_degree[1] - p_degree[0]) * train_percent
+    elif update_method == 'ASC_SIG':
+        breakpoint()
+        parnd_degree = p_degree[0] + (p_degree[1] - p_degree[0]) * sig_polar(train_percent)
+    elif update_method == 'DESC':
+        prand_degree = p_degree[1] - (p_degree[1] - p_degree[0]) * train_percent
+        
     alpha = (np.random.random() - 1) * np.pi
-    beta = alpha + polarmix_degree
+    beta = alpha + prand_degree
     Omega = [0, np.random.random() * np.pi * 2 / 3, (np.random.random() + 1) * np.pi * 2 / 3]  # x3
     Omega = Omega[:polarmix_rot_copy_num]
     pts_out, labels_out = polarmix(data_dict_source['points'],

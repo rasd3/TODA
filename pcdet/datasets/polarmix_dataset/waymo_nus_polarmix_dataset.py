@@ -30,6 +30,11 @@ class WaymoNusPolarMixDataset(CutMixDatasetTemplate):
         self.logger.info('Total samples for Waymo: %d' % (len(self.waymo_infos)))
         self.logger.info('Total samples for NuScenes: %d' % (len(self.nus_infos)))
 
+        self.train_percent = 0.
+        self.polarmix_rot_copy_num = self.dataset_cfg.get('POLARMIX_RC_NUM', 2)
+        self.polarmix_degree = self.dataset_cfg.get('POLARMIX_DEGREE', [np.pi])
+        self.polarmix_update_method = self.dataset_cfg.get('POLARMIX_UPDATE_METHOD', 'FIX')
+
     # for nus
     def include_nuscenes_data(self, mode):
         self.logger.info('Loading NuScenes Dataset')
