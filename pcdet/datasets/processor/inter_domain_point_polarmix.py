@@ -154,7 +154,6 @@ def inter_domain_point_polarmix(data_dict_source, data_dict_target, polarmix_rot
     elif update_method == 'ASC':
         prand_degree = p_degree[0] + (p_degree[1] - p_degree[0]) * train_percent
     elif update_method == 'ASC_SIG':
-        breakpoint()
         parnd_degree = p_degree[0] + (p_degree[1] - p_degree[0]) * sig_polar(train_percent)
     elif update_method == 'DESC':
         prand_degree = p_degree[1] - (p_degree[1] - p_degree[0]) * train_percent
