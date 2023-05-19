@@ -118,7 +118,7 @@ def polarmix(pts1, labels1, pts2, labels2, swap_range, Omega):
     """
     pts_out, labels_out = pts1, labels1
     # swapping
-    if np.random.random() < 0.5:
+    if np.random.random() < 1.0:
         for i in range(len(swap_range)):
             pts_out, _, labels_out, _ = swap(pts_out, pts2, start_angle=swap_range[i][0], end_angle=swap_range[i][1], label1=labels_out, label2=labels2)
         #  nus_vis(pts_out, labels_out, 'vis_1.png')

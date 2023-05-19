@@ -229,6 +229,16 @@ class CutMixDatasetTemplate(torch_data.Dataset):
                                                              self.polarmix_degree,
                                                              self.train_percent,
                                                              self.polarmix_update_method)
+        elif self.dataset_cfg.MIX_TYPE == 'cutpolarmix':
+            if np.random.random() < 0.5:
+                cutmixed_data_dict = inter_domain_point_cutmix(data_dict_source, data_dict_target, self.point_cloud_range)
+            else:
+                cutmixed_data_dict = inter_domain_point_polarmix(data_dict_source, data_dict_target,
+                                                                 self.polarmix_rot_copy_num,
+                                                                 self.polarmix_degree,
+                                                                 self.train_percent,
+                                                                 self.polarmix_update_method)
+
         elif self.dataset_cfg.MIX_TYPE == 'pseudobbox':
             cutmixed_data_dict = inter_domain_point_pseudobbox(data_dict_source, data_dict_target)
         elif self.dataset_cfg.MIX_TYPE == 'pseudobackground':
