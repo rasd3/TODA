@@ -33,7 +33,7 @@ class WaymoNusPolarMixDataset(CutMixDatasetTemplate):
         self.train_percent = 0.
         self.polarmix_rot_copy_num = self.dataset_cfg.get('POLARMIX_RC_NUM', 2)
         self.polarmix_degree = self.dataset_cfg.get('POLARMIX_DEGREE', [np.pi])
-        self.polarmix_update_method = self.dataset_cfg.get('POLARMIX_UPDATE_METHOD', 'FIX')
+        self.polarmix_update_method = self.dataset_cfg.get('POLARMIX_UPDATE_METHOD', ['FIX'])
 
     # for nus
     def include_nuscenes_data(self, mode):
@@ -177,6 +177,7 @@ class WaymoNusPolarMixDataset(CutMixDatasetTemplate):
 
                 if self.dataset_cfg['NuScenesDataset'].get('SHIFT_COOR', None):
                     nus_input_dict['gt_boxes'][:, 0:3] += self.dataset_cfg['NuScenesDataset'].SHIFT_COOR
+                    nus_input_dict['shift_coor'] = self.dataset_cfg['NuScenesDataset'].SHIFT_COOR
 
                 if self.dataset_cfg['NuScenesDataset'].get('SET_NAN_VELOCITY_TO_ZEROS', False):
                     gt_boxes = nus_input_dict['gt_boxes']
@@ -298,6 +299,7 @@ class WaymoNusPolarMixDataset(CutMixDatasetTemplate):
 
                     if self.dataset_cfg['NuScenesDataset'].get('SHIFT_COOR', None):
                         nus_input_dict['gt_boxes'][:, 0:3] += self.dataset_cfg['NuScenesDataset'].SHIFT_COOR
+                        nus_input_dict['shift_coor'] = self.dataset_cfg['NuScenesDataset'].SHIFT_COOR
 
                     if self.dataset_cfg['NuScenesDataset'].get('SET_NAN_VELOCITY_TO_ZEROS', False):
                         gt_boxes = nus_input_dict['gt_boxes']

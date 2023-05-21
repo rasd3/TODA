@@ -225,6 +225,8 @@ class DataBaseSampler(object):
                 sampled_dict = self.sample_with_fixed_number(class_name, sample_group)
 
                 sampled_boxes = np.stack([x['box3d_lidar'] for x in sampled_dict], axis=0).astype(np.float32)
+                if 'shift_coor' in data_dict:
+                    sampled_boxes[:, :3] += data_dict['shift_coor']
 
                 if self.sampler_cfg.get('DATABASE_WITH_FAKELIDAR', False):
                     sampled_boxes = box_utils.boxes3d_kitti_fakelidar_to_lidar(sampled_boxes)

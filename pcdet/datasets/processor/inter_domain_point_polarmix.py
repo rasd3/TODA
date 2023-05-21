@@ -20,6 +20,17 @@ def sig_polar(x):
     # change range 0~1 -> -1~1, hyperparameter alpha:6
     return 1/(1+np.exp(-6*(x*2-1)))
 
+def is_overlap(x1, x2, x3, x4):
+    if x2 < x1:
+        x1, x2 = x2, x1
+    if x4 < x3:
+        x3, x4 = x4, x3
+    
+    if x2 < x3 or x4 < x1: 
+        return False
+    else:
+        return True
+
 def nus_vis(points, boxes=None, img_dir='test.png'):
     import cv2
     from pcdet.utils.simplevis import nuscene_vis
@@ -140,7 +151,7 @@ def polarmix(pts1, labels1, pts2, labels2, swap_range, Omega):
     return pts_out, labels_out
 
 def inter_domain_point_polarmix(data_dict_source, data_dict_target, polarmix_rot_copy_num, polarmix_degree,
-                                train_percent, update_method):
+                                train_percent, update_methods):
     if isinstance(polarmix_degree, float):
         p_degree = [polarmix_degree, polarmix_degree]
     elif isinstance(polarmix_degree, list):
@@ -149,24 +160,36 @@ def inter_domain_point_polarmix(data_dict_source, data_dict_target, polarmix_rot
         else:
             p_degree = [polarmix_degree[0], polarmix_degree[1]]
 
-    if update_method == 'FIX':
-        prand_degree = p_degree[0]
-    elif update_method == 'RAND':
-        prand_degree = np.random.uniform(p_degree[0], p_degree[1])
-    elif update_method == 'ASC':
-        prand_degree = p_degree[0] + (p_degree[1] - p_degree[0]) * train_percent
-    elif update_method == 'ASC_SIG':
-        prand_degree = p_degree[0] + (p_degree[1] - p_degree[0]) * sig_polar(train_percent)
-    elif update_method == 'DESC':
-        prand_degree = p_degree[1] - (p_degree[1] - p_degree[0]) * train_percent
-        
-    swap_st = (np.random.random() * 2 - 1) * np.pi # -pi ~ pi
-    swap_range = [[swap_st, swap_st + prand_degree]]
-    num_swap = len(swap_range)
-    for i in range(num_swap):
-        if swap_range[i][1] > np.pi:
-            swap_range.append([-np.pi, swap_range[i][1]-(np.pi*2)])
-            swap_range[i][1] = np.pi
+    swap_range = []
+    for update_method in update_methods:
+        if update_method == 'FIX':
+            prand_degree = p_degree[0]
+        elif update_method == 'RAND':
+            prand_degree = np.random.uniform(p_degree[0], p_degree[1])
+        elif update_method == 'ASC':
+            prand_degree = p_degree[0] + (p_degree[1] - p_degree[0]) * train_percent
+        elif update_method == 'ASC_SIG':
+            prand_degree = p_degree[0] + (p_degree[1] - p_degree[0]) * sig_polar(train_percent)
+        elif update_method == 'DESC':
+            prand_degree = p_degree[1] - (p_degree[1] - p_degree[0]) * train_percent
+            
+        num_swap = len(swap_range)
+        for _ in range(100):
+            swap_st = (np.random.random() * 2 - 1) * np.pi # -pi ~ pi
+            ov_flag = False
+            for i in range(num_swap):
+                ov_flag = is_overlap(swap_range[i][0], swap_range[i][1], swap_st, swap_st + prand_degree)
+                if ov_flag:
+                    break
+            if ov_flag == False:
+                swap_range.append([swap_st, swap_st + prand_degree])
+                break
+
+        num_swap = len(swap_range)
+        for i in range(num_swap):
+            if swap_range[i][1] > np.pi:
+                swap_range.append([-np.pi, swap_range[i][1]-(np.pi*2)])
+                swap_range[i][1] = np.pi
 
     Omega = [0, np.random.random() * np.pi * 2 / 3, (np.random.random() + 1) * np.pi * 2 / 3]  # x3
     Omega = Omega[:polarmix_rot_copy_num]
