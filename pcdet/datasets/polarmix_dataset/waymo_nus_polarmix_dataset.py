@@ -52,7 +52,7 @@ class WaymoNusPolarMixDataset(CutMixDatasetTemplate):
         self.nus_infos.extend(nuscenes_infos)
 
     def get_lidar_with_sweeps(self, index, max_sweeps=1):
-        info = self.nus_infos[index % len(self.nus_infos)]
+        info = self.nus_infos[index]
         lidar_path = self.root_path_target / info['lidar_path']
         points = np.fromfile(str(lidar_path), dtype=np.float32, count=-1).reshape([-1, 5])[:, :4]
 
