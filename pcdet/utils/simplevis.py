@@ -220,7 +220,7 @@ def kitti_vis(points, boxes=None, labels=None):
 
 def nuscene_vis(points, boxes=None, labels=None):
     vis_voxel_size = [0.1, 0.1, 0.2]
-    vis_point_range = [-51.2, -51.2, -5, 51.2, 51.2, 3]
+    vis_point_range = [-54.0, -54.0, -5, 54.0, 54.0, 3]
     bev_map = point_to_vis_bev(points, vis_voxel_size, vis_point_range)
     if boxes is not None:
         bev_map = draw_box_in_bev(bev_map, vis_point_range, boxes, [0, 255, 0],

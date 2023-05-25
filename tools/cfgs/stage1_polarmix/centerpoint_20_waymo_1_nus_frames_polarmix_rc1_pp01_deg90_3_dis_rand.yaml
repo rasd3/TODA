@@ -79,7 +79,7 @@ DATA_CONFIG:
     POLARMIX_PROB: 0.1
     POLARMIX_RC_NUM: 1
     POLARMIX_DEGREE: 1.570796
-    POLARMIX_DIS: FULL
+    POLARMIX_DIS: RAND
     POLARMIX_UPDATE_METHOD: [FIX, FIX, FIX]
     POINT_CLOUD_RANGE: [-54.0, -54.0, -5.0, 54.0, 54.0, 4.8]
 
@@ -143,7 +143,7 @@ DATA_CONFIG:
                   }
 
                   SAMPLE_GROUPS: [
-                    'car:2'
+                    'car:10'
                   ]
 
                   NUM_POINT_FEATURES: 5

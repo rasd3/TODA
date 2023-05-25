@@ -34,6 +34,7 @@ class WaymoNusPolarMixDataset(CutMixDatasetTemplate):
         self.polarmix_rot_copy_num = self.dataset_cfg.get('POLARMIX_RC_NUM', 2)
         self.polarmix_degree = self.dataset_cfg.get('POLARMIX_DEGREE', [np.pi])
         self.polarmix_update_method = self.dataset_cfg.get('POLARMIX_UPDATE_METHOD', ['FIX'])
+        self.polarmix_dis = self.dataset_cfg.get('POLARMIX_DIS', 'FULL')
 
     # for nus
     def include_nuscenes_data(self, mode):
