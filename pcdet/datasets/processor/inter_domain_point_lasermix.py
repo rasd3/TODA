@@ -104,10 +104,10 @@ def laser_mix_transform_cyc(source_dict: dict, target_dict: dict,
     s_dis_b = np.clip(np.sqrt(s_box[:, 0]**2 + s_box[:, 1]**2), 0, pc_range[3])
     t_dis_b = np.clip(np.sqrt(t_box[:, 0]**2 + t_box[:, 1]**2), 0, pc_range[3])
 
-    idx = 0
+    start_domain = np.random.choice([0, 1])
     out_pts, out_box = [], []
     for i in range(len(yaw_range) - 1):
-        idx = i % 2
+        idx = i % 2 + start_domain
         for j in range(len(dis_range) - 1):
             if idx % 2 == 0:
                 idx_pts = (s_yaw_p > yaw_range[i]) & (s_yaw_p <= yaw_range[i+1])
