@@ -72,12 +72,9 @@ def swap(pt1, pt2, start_angle, end_angle, label1, label2):
 
     return pt1_out, pt2_out, label1_out, label2_out
 
-def swap_with_range(pt1, pt2, start_angle, end_angle, label1, label2, pc_range, polar_dis):
+def swap_with_range(pt1, pt2, start_angle, end_angle, label1, label2, pc_range):
     # pick distance threshold
-    if polar_dis == 'RAND':
-        dis_th = np.random.random() * pc_range[3]
-    else:
-        NotImplementedError('Not implemented on swap_with_range function')
+    dis_th = np.random.random() * pc_range[3]
 
     # calculate horizontal angle and distance for each point
     yaw1 = -np.arctan2(pt1[:, 1], pt1[:, 0])
@@ -127,7 +124,6 @@ def swap_with_range(pt1, pt2, start_angle, end_angle, label1, label2, pc_range, 
 
     return pt1_out, pt2_out, label1_out, label2_out
     
-
 def rotate_copy(pts, labels, Omega, labels2):
     labels_inst = labels
 
@@ -189,7 +185,7 @@ def polarmix(pts1, labels1, pts2, labels2, swap_range, Omega, pc_range, polar_di
         for i in range(len(swap_range)):
             if polar_dis == 'FULL':
                 pts_out, _, labels_out, _ = swap(pts_out, pts2, start_angle=swap_range[i][0], end_angle=swap_range[i][1], label1=labels_out, label2=labels2)
-            else:
+            elif polar_dis == 'RAND':
                 pts_out, _, labels_out, _ = swap_with_range(pts_out, pts2, start_angle=swap_range[i][0], end_angle=swap_range[i][1], label1=labels_out, label2=labels2, pc_range=pc_range, polar_dis=polar_dis)
         #  nus_vis(pts_out, labels_out, 'vis_1.png')
         #  nus_vis(pts1, labels1, 'vis_ori.png')

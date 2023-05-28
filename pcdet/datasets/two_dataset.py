@@ -11,6 +11,7 @@ from .processor.data_processor import DataProcessor
 from .processor.point_feature_encoder import PointFeatureEncoder
 from .processor.inter_domain_point_cutmix import inter_domain_point_cutmix
 from .processor.inter_domain_point_polarmix import inter_domain_point_polarmix
+from .processor.inter_domain_point_lasermix import inter_domain_point_lasermix
 from .processor.inter_domain_point_pseudomix import inter_domain_point_pseudobackground, inter_domain_point_pseudobbox
 # from .processor.random_patch_replacement import random_patch_replacement
 # from .processor.point_mixup import pc_mixup
@@ -249,6 +250,14 @@ class CutMixDatasetTemplate(torch_data.Dataset):
             cutmixed_data_dict = inter_domain_point_pseudobbox(data_dict_source, data_dict_target)
         elif self.dataset_cfg.MIX_TYPE == 'pseudobackground':
             cutmixed_data_dict = inter_domain_point_pseudobackground(data_dict_source, data_dict_target)
+        elif self.dataset_cfg.MIX_TYPE == 'lasermix':
+            cutmixed_data_dict = inter_domain_point_lasermix(data_dict_source,
+                                                             data_dict_target,
+                                                             self.laser_pitch_angle,
+                                                             self.laser_num_areas,
+                                                             self.laser_num_angles,
+                                                             self.point_cloud_range
+                                                             )
         else:
             raise NotImplementedError
         
