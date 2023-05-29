@@ -72,6 +72,8 @@ class CutMixDatasetTemplate(torch_data.Dataset):
         else:
             self.depth_downsample_factor = None
 
+        self.mix_inc_method = self.dataset_cfg.get('MIX_INC_METHOD', 'center')
+
 
     @property
     def mode(self):
@@ -223,7 +225,7 @@ class CutMixDatasetTemplate(torch_data.Dataset):
         assert data_dict_source is not None and data_dict_target is not None
 
         if self.dataset_cfg.MIX_TYPE == 'cutmix':
-            cutmixed_data_dict = inter_domain_point_cutmix(data_dict_source, data_dict_target, self.point_cloud_range)
+            cutmixed_data_dict = inter_domain_point_cutmix(data_dict_source, data_dict_target, self.point_cloud_range, self.mix_inc_method)
         elif self.dataset_cfg.MIX_TYPE == 'polarmix':
             cutmixed_data_dict = inter_domain_point_polarmix(data_dict_source, data_dict_target,
                                                              self.polarmix_rot_copy_num,
@@ -231,11 +233,12 @@ class CutMixDatasetTemplate(torch_data.Dataset):
                                                              self.train_percent,
                                                              self.polarmix_update_method,
                                                              self.point_cloud_range,
-                                                             self.polarmix_dis
+                                                             self.polarmix_dis,
+                                                             self.mix_inc_method
                                                              )
         elif self.dataset_cfg.MIX_TYPE == 'cutpolarmix':
             if np.random.random() < 0.5:
-                cutmixed_data_dict = inter_domain_point_cutmix(data_dict_source, data_dict_target, self.point_cloud_range)
+                cutmixed_data_dict = inter_domain_point_cutmix(data_dict_source, data_dict_target, self.point_cloud_range, self.mix_inc_method)
             else:
                 cutmixed_data_dict = inter_domain_point_polarmix(data_dict_source, data_dict_target,
                                                                  self.polarmix_rot_copy_num,
@@ -243,7 +246,8 @@ class CutMixDatasetTemplate(torch_data.Dataset):
                                                                  self.train_percent,
                                                                  self.polarmix_update_method,
                                                                  self.point_cloud_range,
-                                                                 self.polarmix_dis
+                                                                 self.polarmix_dis,
+                                                                 self.mix_inc_method
                                                                  )
 
         elif self.dataset_cfg.MIX_TYPE == 'pseudobbox':
@@ -256,7 +260,8 @@ class CutMixDatasetTemplate(torch_data.Dataset):
                                                              self.laser_pitch_angle,
                                                              self.laser_num_areas,
                                                              self.laser_num_angles,
-                                                             self.point_cloud_range
+                                                             self.point_cloud_range,
+                                                             self.mix_inc_method
                                                              )
         else:
             raise NotImplementedError

@@ -134,18 +134,21 @@ def laser_mix_transform_cyc(source_dict: dict, target_dict: dict,
     return mixed_results
             
 
-def inter_domain_point_lasermix(data_dict_source, data_dict_target, pitch_angle, num_areas, num_angles, pc_range):
+def inter_domain_point_lasermix(data_dict_source, data_dict_target, pitch_angle, num_areas, num_angles, pc_range, inc_method):
     if num_angles is not None:
         lasermixed_data = laser_mix_transform_cyc(data_dict_source,
                                                   data_dict_target,
                                                   num_areas,
                                                   num_angles,
-                                                  pc_range)
+                                                  pc_range,
+                                                  inc_method
+                                                  )
     else:
         lasermixed_data = laser_mix_transform_sph(data_dict_source,
                                                   data_dict_target,
                                                   pitch_angle,
                                                   num_areas,
+                                                  inc_method
                                                   )
     #  nus_vis(data_dict_source['points'], data_dict_source['gt_boxes'], 'vis_1.png')
     #  nus_vis(data_dict_target['points'], data_dict_target['gt_boxes'], 'vis_2.png')

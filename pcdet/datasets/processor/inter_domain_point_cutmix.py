@@ -7,7 +7,7 @@ def check_aspect2D(crop_range, aspect_min):
     xy_aspect = np.min(crop_range[:2]) / np.max(crop_range[:2])
     return (xy_aspect >= aspect_min)
 
-def inter_domain_point_cutmix(data_source, data_target, pc_range):
+def inter_domain_point_cutmix(data_source, data_target, pc_range, inc_method):
     """
     Random crop a range in data_source, replace the points in this area with that in
     data_target, and boxes

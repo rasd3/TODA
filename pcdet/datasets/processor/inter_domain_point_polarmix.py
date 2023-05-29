@@ -41,7 +41,34 @@ def nus_vis(points, boxes=None, img_dir='test.png'):
     det = nuscene_vis(points, boxes_vis)
     cv2.imwrite('%s.png' % img_dir, det)
 
-def swap(pt1, pt2, start_angle, end_angle, label1, label2):
+def swap(pt1, pt2, start_angle, end_angle, label1, label2, inc_method='center'):
+    # calculate horizontal angel for each center of gt bbox
+    n_label1, n_label2 = label1.shape[0], label2.shape[0]
+    if inc_method == 'center':
+        yaw1 = -np.arctan2(label1[:, 1], label1[:, 0])
+        yaw2 = -np.arctan2(label2[:, 1], label2[:, 0])
+        idx1 = np.where((yaw1>start_angle) & (yaw1<end_angle))
+        idx2 = np.where((yaw2>start_angle) & (yaw2<end_angle))
+    elif inc_method == 'corner' or inc_method == 'corner_del':
+        corner1 = box_utils.boxes_to_corners_3d(label1)[:, :, :2]
+        corner2 = box_utils.boxes_to_corners_3d(label2)[:, :, :2]
+        yaw1 = -np.arctan2(corner1[:, :, 1], corner1[:, :, 0])
+        yaw2 = -np.arctan2(corner2[:, :, 1], corner2[:, :, 0])
+        idx1 = np.any((yaw1>start_angle) & (yaw1<end_angle), axis=1)
+        idx2 = np.all((yaw2>start_angle) & (yaw2<end_angle), axis=1)
+        if inc_method == 'corner_del':
+            idx1_a = np.all((yaw1>start_angle) & (yaw1<end_angle), axis=1)
+            idx2_a = np.any((yaw2>start_angle) & (yaw2<end_angle), axis=1)
+            # when only part of corners are wiht in region remove points in bbox
+            pt1 = box_utils.remove_points_in_boxes3d(pt1, label1[idx1 != idx1_a][:, :7])
+            pt2 = box_utils.remove_points_in_boxes3d(pt2, label2[idx2 != idx2_a][:, :7])
+        idx1, idx2 = np.where(idx1), np.where(idx2)
+    else:
+        NotImplementedError()
+    comp1 = np.setdiff1d(np.arange(n_label1), idx1[0])
+    label1_out = label1[comp1]
+    label1_out = np.concatenate((label1_out, label2[idx2]))
+
     # calculate horizontal angle for each point
     yaw1 = -np.arctan2(pt1[:, 1], pt1[:, 0])
     yaw2 = -np.arctan2(pt2[:, 1], pt2[:, 0])
@@ -52,25 +79,10 @@ def swap(pt1, pt2, start_angle, end_angle, label1, label2):
 
     # swap
     pt1_out = np.delete(pt1, idx1, axis=0)
-    pt1_out = np.concatenate((pt1_out, pt2[idx2]))
-    pt2_out = np.delete(pt2, idx2, axis=0)
-    pt2_out = np.concatenate((pt2_out, pt1[idx1]))
+    pt1_out2 = np.concatenate((pt1_out, pt2[idx2]))
 
-    # calculate horizontal angel for each center of gt bbox
-    n_label1, n_label2 = label1.shape[0], label2.shape[0]
-    yaw1 = -np.arctan2(label1[:, 1], label1[:, 0])
-    yaw2 = -np.arctan2(label2[:, 1], label2[:, 0])
-    idx1 = np.where((yaw1>start_angle) & (yaw1<end_angle))
-    idx2 = np.where((yaw2>start_angle) & (yaw2<end_angle))
 
-    comp1 = np.setdiff1d(np.arange(n_label1), idx1[0])
-    label1_out = label1[comp1]
-    label1_out = np.concatenate((label1_out, label2[idx2]))
-    comp2 = np.setdiff1d(np.arange(n_label2), idx2[0])
-    label2_out = label2[comp2]
-    label2_out = np.concatenate((label2_out, label1[idx1]))
-
-    return pt1_out, pt2_out, label1_out, label2_out
+    return pt1_out2, label1_out
 
 def swap_with_range(pt1, pt2, start_angle, end_angle, label1, label2, pc_range):
     # pick distance threshold
@@ -122,7 +134,7 @@ def swap_with_range(pt1, pt2, start_angle, end_angle, label1, label2, pc_range):
     label2_out = label2[comp2]
     label2_out = np.concatenate((label2_out, label1[idx1]))
 
-    return pt1_out, pt2_out, label1_out, label2_out
+    return pt1_out, label1_out
     
 def rotate_copy(pts, labels, Omega, labels2):
     labels_inst = labels
@@ -164,7 +176,7 @@ def rotate_copy(pts, labels, Omega, labels2):
     labels_copy = np.concatenate(labels_copy, axis=0)
     return pts_copy, labels_copy
 
-def polarmix(pts1, labels1, pts2, labels2, swap_range, Omega, pc_range, polar_dis):
+def polarmix(pts1, labels1, pts2, labels2, swap_range, Omega, pc_range, polar_dis, inc_method):
     """
     Args:
         pts1: source domain points
@@ -184,9 +196,17 @@ def polarmix(pts1, labels1, pts2, labels2, swap_range, Omega, pc_range, polar_di
     if np.random.random() < 1.0:
         for i in range(len(swap_range)):
             if polar_dis == 'FULL':
-                pts_out, _, labels_out, _ = swap(pts_out, pts2, start_angle=swap_range[i][0], end_angle=swap_range[i][1], label1=labels_out, label2=labels2)
+                pts_out, labels_out = swap(pts_out, pts2, 
+                                           start_angle=swap_range[i][0],
+                                           end_angle=swap_range[i][1],
+                                           label1=labels_out, label2=labels2,
+                                           inc_method=inc_method)
             elif polar_dis == 'RAND':
-                pts_out, _, labels_out, _ = swap_with_range(pts_out, pts2, start_angle=swap_range[i][0], end_angle=swap_range[i][1], label1=labels_out, label2=labels2, pc_range=pc_range, polar_dis=polar_dis)
+                pts_out, labels_out = swap_with_range(pts_out, pts2, 
+                                                      start_angle=swap_range[i][0],
+                                                      end_angle=swap_range[i][1],
+                                                      label1=labels_out, label2=labels2, 
+                                                      pc_range=pc_range, polar_dis=polar_dis)
         #  nus_vis(pts_out, labels_out, 'vis_1.png')
         #  nus_vis(pts1, labels1, 'vis_ori.png')
         #  nus_vis(pts2, labels2, 'vis_trg.png')
@@ -208,7 +228,7 @@ def polarmix(pts1, labels1, pts2, labels2, swap_range, Omega, pc_range, polar_di
     return pts_out, labels_out
 
 def inter_domain_point_polarmix(data_dict_source, data_dict_target, polarmix_rot_copy_num, polarmix_degree,
-                                train_percent, update_methods, pc_range, polar_dis):
+                                train_percent, update_methods, pc_range, polar_dis, inc_method):
     if isinstance(polarmix_degree, float):
         p_degree = [polarmix_degree, polarmix_degree]
     elif isinstance(polarmix_degree, list):
@@ -254,7 +274,7 @@ def inter_domain_point_polarmix(data_dict_source, data_dict_target, polarmix_rot
                                    data_dict_source['gt_boxes'],
                                    data_dict_target['points'],
                                    data_dict_target['gt_boxes'],
-                                   swap_range, Omega, pc_range, polar_dis
+                                   swap_range, Omega, pc_range, polar_dis, inc_method
                                    )
     cutmixed_data = copy.deepcopy(data_dict_target)
     cutmixed_data['points'] = pts_out
