@@ -7,6 +7,8 @@ from typing import List, Sequence
 import torch
 import numpy as np
 
+from pcdet.utils import box_utils
+
 def nus_vis(points, boxes=None, img_dir='test.png'):
     import cv2
     from pcdet.utils.simplevis import nuscene_vis
@@ -68,13 +70,11 @@ def laser_mix_transform_sph(input_dict: dict, mix_results: dict,
         if i % 2 == order:  # pick from original point cloud
             idx = (pitch > start_angle) & (pitch <= end_angle)
             out_points.append(points[idx])
-            print(idx.sum())
             idx_b = (pitch_box > start_angle) & (pitch_box <= end_angle)
             out_boxes.append(boxes[idx_b])
         else:  # pickle from mixed point cloud
             idx = (mix_pitch > start_angle) & (mix_pitch <= end_angle)
             out_points.append(mix_points[idx])
-            print(idx.sum())
             idx_b = (mix_pitch_box > start_angle) & (mix_pitch_box <= end_angle)
             out_boxes.append(mix_boxes[idx_b])
     out_points = np.concatenate(out_points)
@@ -86,7 +86,43 @@ def laser_mix_transform_sph(input_dict: dict, mix_results: dict,
     return mixed_results
 
 def laser_mix_transform_cyc(source_dict: dict, target_dict: dict,
-                            num_areas: List[int], num_angles: int, pc_range: List[int]):
+                            num_areas: List[int], num_angles: int, pc_range: List[int], inc_method: str):
+    def in_whitin_range(yaw_p, yaw_b, yaw_bc, dis_p, dis_b, dis_bc, pts, box, yaw_range, dis_range, P_ANG):
+        yaw_p = np.copy(yaw_p + P_ANG)
+        yaw_b = np.copy(yaw_b + P_ANG)
+        yaw_bc = np.copy(yaw_bc + P_ANG)
+        yaw_p[yaw_p > 3.141592] -= 6.283184
+        yaw_b[yaw_b > 3.141592] -= 6.283184
+        yaw_bc[yaw_bc > 3.141592] -= 6.283184
+        yaw_p[yaw_p < -3.141592] += 6.283184
+        yaw_b[yaw_b < -3.141592] += 6.283184
+        yaw_bc[yaw_bc < -3.141592] += 6.283184
+
+        if inc_method == 'center':
+            idx_box = (yaw_b > yaw_range[0]) & (yaw_b <= yaw_range[1])
+            idx_box = np.logical_and(idx_box, (dis_b > dis_range[0]) & (dis_b <= dis_range[1]))
+
+            idx_pts = (yaw_p > yaw_range[0]) & (yaw_p <= yaw_range[1])
+            idx_pts = np.logical_and(idx_pts, (dis_p > dis_range[0]) & (dis_p <= dis_range[1]))
+
+            add_pts, add_box = pts[idx_pts], box[idx_box]
+        elif inc_method =='corner_del':
+            pts_c = np.copy(pts)
+            idx_box_yo = np.any((yaw_bc > yaw_range[0]) & (yaw_bc <= yaw_range[1]), axis=1)
+            idx_box_ya = np.all((yaw_bc > yaw_range[0]) & (yaw_bc <= yaw_range[1]), axis=1)
+            idx_box_do = np.any((dis_bc > dis_range[0]) & (dis_bc <= dis_range[1]), axis=1)
+            idx_box_da = np.all((dis_bc > dis_range[0]) & (dis_bc <= dis_range[1]), axis=1)
+            idx_box_del = np.logical_or(idx_box_yo != idx_box_ya, idx_box_do != idx_box_da)
+            idx_box = np.logical_and(idx_box_ya, idx_box_da)
+            add_box = box[idx_box]
+
+            idx_pts = (yaw_p > yaw_range[0]) & (yaw_p <= yaw_range[1])
+            idx_pts = np.logical_and(idx_pts, (dis_p > dis_range[0]) & (dis_p <= dis_range[1]))
+            add_pts = box_utils.remove_points_in_boxes3d(pts_c[idx_pts], box[idx_box_del][:, :7])
+
+        return add_pts, add_box
+
+    P_ANG = np.random.uniform(-3.141592, 3.141952)
     dis_range = np.linspace(0, pc_range[3], num_areas + 1)
     yaw_range = np.linspace(-np.pi, np.pi, num_angles + 1)
 
@@ -97,12 +133,19 @@ def laser_mix_transform_cyc(source_dict: dict, target_dict: dict,
 
     s_yaw_p = -np.arctan2(s_pts[:, 1], s_pts[:, 0])
     t_yaw_p = -np.arctan2(t_pts[:, 1], t_pts[:, 0])
+    s_dis_p = np.clip(np.sqrt(s_pts[:, 0]**2 + s_pts[:, 1]**2), 1e-05, pc_range[3] - 1e-05)
+    t_dis_p = np.clip(np.sqrt(t_pts[:, 0]**2 + t_pts[:, 1]**2), 1e-05, pc_range[3] - 1e-05)
+
     s_yaw_b = -np.arctan2(s_box[:, 1], s_box[:, 0])
     t_yaw_b = -np.arctan2(t_box[:, 1], t_box[:, 0])
-    s_dis_p = np.clip(np.sqrt(s_pts[:, 0]**2 + s_pts[:, 1]**2), 0, pc_range[3])
-    t_dis_p = np.clip(np.sqrt(t_pts[:, 0]**2 + t_pts[:, 1]**2), 0, pc_range[3])
-    s_dis_b = np.clip(np.sqrt(s_box[:, 0]**2 + s_box[:, 1]**2), 0, pc_range[3])
-    t_dis_b = np.clip(np.sqrt(t_box[:, 0]**2 + t_box[:, 1]**2), 0, pc_range[3])
+    s_dis_b = np.clip(np.sqrt(s_box[:, 0]**2 + s_box[:, 1]**2), 1e-05, pc_range[3] - 1e-05)
+    t_dis_b = np.clip(np.sqrt(t_box[:, 0]**2 + t_box[:, 1]**2), 1e-05, pc_range[3] - 1e-05)
+    s_corner = box_utils.boxes_to_corners_3d(s_box)[:, :, :2]
+    t_corner = box_utils.boxes_to_corners_3d(t_box)[:, :, :2]
+    s_yaw_bc = -np.arctan2(s_corner[:, :, 1], s_corner[:, :, 0])
+    t_yaw_bc = -np.arctan2(t_corner[:, :, 1], t_corner[:, :, 0])
+    s_dis_bc = np.clip(np.sqrt(s_corner[:, :, 0]**2 + s_corner[:, :, 1]**2), 1e-05, pc_range[3] - 1e-05)
+    t_dis_bc = np.clip(np.sqrt(t_corner[:, :, 0]**2 + t_corner[:, :, 1]**2), 1e-05, pc_range[3] - 1e-05)
 
     start_domain = np.random.choice([0, 1])
     out_pts, out_box = [], []
@@ -110,19 +153,15 @@ def laser_mix_transform_cyc(source_dict: dict, target_dict: dict,
         idx = i % 2 + start_domain
         for j in range(len(dis_range) - 1):
             if idx % 2 == 0:
-                idx_pts = (s_yaw_p > yaw_range[i]) & (s_yaw_p <= yaw_range[i+1])
-                idx_pts = np.logical_and(idx_pts, (s_dis_p > dis_range[j]) & (s_dis_p <= dis_range[j+1]))
-                idx_box = (s_yaw_b > yaw_range[i]) & (s_yaw_b <= yaw_range[i+1])
-                idx_box = np.logical_and(idx_box, (s_dis_b > dis_range[j]) & (s_dis_b <= dis_range[j+1]))
-                out_pts.append(s_pts[idx_pts])
-                out_box.append(s_box[idx_box])
+                pts_add, box_add = in_whitin_range(s_yaw_p, s_yaw_b, s_yaw_bc, s_dis_p, s_dis_b, s_dis_bc, s_pts, s_box,
+                                                   [yaw_range[i], yaw_range[i+1]], [dis_range[j], dis_range[j+1]], P_ANG)
+                out_pts.append(pts_add)
+                out_box.append(box_add)
             else:
-                idx_pts = (t_yaw_p > yaw_range[i]) & (t_yaw_p <= yaw_range[i+1])
-                idx_pts = np.logical_and(idx_pts, (t_dis_p > dis_range[j]) & (t_dis_p <= dis_range[j+1]))
-                idx_box = (t_yaw_b > yaw_range[i]) & (t_yaw_b <= yaw_range[i+1])
-                idx_box = np.logical_and(idx_box, (t_dis_b > dis_range[j]) & (t_dis_b <= dis_range[j+1]))
-                out_pts.append(t_pts[idx_pts])
-                out_box.append(t_box[idx_box])
+                pts_add, box_add = in_whitin_range(t_yaw_p, t_yaw_b, t_yaw_bc, t_dis_p, t_dis_b, t_dis_bc, t_pts, t_box,
+                                                   [yaw_range[i], yaw_range[i+1]], [dis_range[j], dis_range[j+1]], P_ANG)
+                out_pts.append(pts_add)
+                out_box.append(box_add)
             idx += 1
     out_pts = np.concatenate(out_pts)
     out_box = np.concatenate(out_box)
