@@ -9,6 +9,7 @@ from pcdet.utils import box_utils
 
 from ...ops.roiaware_pool3d import roiaware_pool3d_utils
 from ...utils import common_utils
+from ..processor.inter_domain_point_polarmix import nus_vis
 
 class WaymoNusPolarMixDataset(CutMixDatasetTemplate):
     def __init__(self, dataset_cfg=None, training=True, dataset_names=None, logger=None):
@@ -22,6 +23,9 @@ class WaymoNusPolarMixDataset(CutMixDatasetTemplate):
 
         # for Waymo
         self.waymo_data_path = self.root_path_source / self.dataset_cfg['WaymoDataset'].PROCESSED_DATA_TAG
+        self.waymo_other_data_path = None
+        if 'OTHER_CHANNEL' in self.dataset_cfg['WaymoDataset']:
+            self.waymo_other_data_path = self.root_path_source / self.dataset_cfg['WaymoDataset']['OTHER_CHANNEL']
         self.waymo_split = self.dataset_cfg['WaymoDataset'].DATA_SPLIT[self.mode]
         split_dir = self.root_path_source / 'ImageSets' / (self.waymo_split + '.txt')
         self.waymo_sample_sequence_list = [x.strip() for x in open(split_dir).readlines()]
@@ -116,6 +120,8 @@ class WaymoNusPolarMixDataset(CutMixDatasetTemplate):
 
     def get_lidar(self, sequence_name, sample_idx):
         lidar_file = self.waymo_data_path / sequence_name / ('%04d.npy' % sample_idx)
+        if self.waymo_other_data_path is not None:
+            lidar_file = self.waymo_other_data_path / sequence_name / ('%04d.npy' % sample_idx)
         point_features = np.load(lidar_file)
 
         points_all, NLZ_flag = point_features[:, 0:5], point_features[:, 5]
