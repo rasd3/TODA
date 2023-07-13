@@ -41,7 +41,7 @@ def nus_vis(points, boxes=None, img_dir='test.png'):
     det = nuscene_vis(points, boxes_vis)
     cv2.imwrite('%s.png' % img_dir, det)
 
-def swap(pt1, pt2, start_angle, end_angle, label1, label2, inc_method='center'):
+def swap(pt1, pt2, start_angle, end_angle, label1, label2, inc_method='center', use_pitch=False):
     # calculate horizontal angel for each center of gt bbox
     n_label1, n_label2 = label1.shape[0], label2.shape[0]
     if inc_method == 'center':
@@ -75,7 +75,21 @@ def swap(pt1, pt2, start_angle, end_angle, label1, label2, inc_method='center'):
 
     # select points in sector
     idx1 = np.where((yaw1>start_angle) & (yaw1<end_angle))
-    idx2 = np.where((yaw2>start_angle) & (yaw2<end_angle))
+    if use_pitch:
+        dis1 = np.sqrt(np.power(pt1[:, 0], 2) + np.power(pt1[:, 1], 2))
+        dis2 = np.sqrt(np.power(pt2[:, 0], 2) + np.power(pt2[:, 1], 2))
+        mask1 = dis1 > 1
+        mask2 = dis2 > 1
+        pitch1 = -np.arctan2(pt1[:, 2], dis1)
+        pitch2 = -np.arctan2(pt2[:, 2], dis2)
+        pitch1_min, pitch1_max = pitch1[mask1].min(), pitch1[mask1].max()
+        idx2_1 = np.where(((yaw2<start_angle) | (yaw2>end_angle)) & ((pitch2 < pitch1_min) | (pitch2 > pitch1_max)) & mask2)
+        idx2_2 = np.where((yaw2>start_angle) & (yaw2<end_angle))
+        #  if idx2_1[0].shape[0]:
+            #  print('pitch: %d' % idx2_1[0].shape[0])
+        idx2 = (np.hstack((idx2_1[0], idx2_2[0])))
+    else:
+        idx2 = np.where((yaw2>start_angle) & (yaw2<end_angle))
 
     # swap
     pt1_out = np.delete(pt1, idx1, axis=0)
@@ -176,7 +190,8 @@ def rotate_copy(pts, labels, Omega, labels2):
     labels_copy = np.concatenate(labels_copy, axis=0)
     return pts_copy, labels_copy
 
-def polarmix(pts1, labels1, pts2, labels2, swap_range, Omega, pc_range, polar_dis, inc_method):
+def polarmix(pts1, labels1, pts2, labels2, swap_range, Omega, pc_range, polar_dis, inc_method,
+             use_pitch):
     """
     Args:
         pts1: source domain points
@@ -200,7 +215,9 @@ def polarmix(pts1, labels1, pts2, labels2, swap_range, Omega, pc_range, polar_di
                                            start_angle=swap_range[i][0],
                                            end_angle=swap_range[i][1],
                                            label1=labels_out, label2=labels2,
-                                           inc_method=inc_method)
+                                           inc_method=inc_method,
+                                           use_pitch=use_pitch
+                                           )
             elif polar_dis == 'RAND':
                 pts_out, labels_out = swap_with_range(pts_out, pts2, 
                                                       start_angle=swap_range[i][0],
@@ -228,7 +245,7 @@ def polarmix(pts1, labels1, pts2, labels2, swap_range, Omega, pc_range, polar_di
     return pts_out, labels_out
 
 def inter_domain_point_polarmix(data_dict_source, data_dict_target, polarmix_rot_copy_num, polarmix_degree,
-                                train_percent, update_methods, pc_range, polar_dis, inc_method):
+                                train_percent, update_methods, pc_range, polar_dis, inc_method, use_pitch):
     if isinstance(polarmix_degree, float):
         p_degree = [polarmix_degree, polarmix_degree]
     elif isinstance(polarmix_degree, list):
@@ -274,7 +291,7 @@ def inter_domain_point_polarmix(data_dict_source, data_dict_target, polarmix_rot
                                    data_dict_source['gt_boxes'],
                                    data_dict_target['points'],
                                    data_dict_target['gt_boxes'],
-                                   swap_range, Omega, pc_range, polar_dis, inc_method
+                                   swap_range, Omega, pc_range, polar_dis, inc_method, use_pitch
                                    )
     cutmixed_data = copy.deepcopy(data_dict_target)
     cutmixed_data['points'] = pts_out

@@ -234,7 +234,8 @@ class CutMixDatasetTemplate(torch_data.Dataset):
                                                              self.polarmix_update_method,
                                                              self.point_cloud_range,
                                                              self.polarmix_dis,
-                                                             self.mix_inc_method
+                                                             self.mix_inc_method,
+                                                             self.polarmix_use_pitch,
                                                              )
         elif self.dataset_cfg.MIX_TYPE == 'cutpolarmix':
             if np.random.random() < 0.5:
@@ -247,7 +248,8 @@ class CutMixDatasetTemplate(torch_data.Dataset):
                                                                  self.polarmix_update_method,
                                                                  self.point_cloud_range,
                                                                  self.polarmix_dis,
-                                                                 self.mix_inc_method
+                                                                 self.mix_inc_method,
+                                                                 self.polarmix_use_pitch,
                                                                  )
 
         elif self.dataset_cfg.MIX_TYPE == 'pseudobbox':
