@@ -76,8 +76,12 @@ DATA_CONFIG:
     DATASET_NAME: 'WaymoNusPolarMixDataset'
     CLASS_NAMES: ['car']
     MIX_TYPE: polarmix
+    MIX_INC_METHOD: corner_del
     POLARMIX_PROB: 0.2
     POLARMIX_RC_NUM: 1
+    POLARMIX_DEGREE: 1.570796
+    POLARMIX_DIS: FULL
+    POLARMIX_UPDATE_METHOD: [FIX, FIX, FIX]
     POINT_CLOUD_RANGE: [-54.0, -54.0, -5.0, 54.0, 54.0, 4.8]
 
     DATA_SPLIT: {
@@ -121,7 +125,7 @@ DATA_CONFIG:
         CLASS_NAMES: ['car']
 
         INFO_PATH: {
-            'train': [top_1_percent_frames_nuscenes_infos_10sweeps_train.pkl],
+            'train': [top_10_percent_frames_nuscenes_infos_10sweeps_train.pkl],
             'test': [nuscenes_infos_10sweeps_val.pkl],
         }
 
@@ -132,7 +136,7 @@ DATA_CONFIG:
                   SHIFT_COOR: [0.0, 0.0, 1.8]
                   DB_INFO_PATH:
                     # - nuscenes_dbinfos_10sweeps_withvelo.pkl
-                    - top_1_percent_frames_nuscenes_dbinfos_10sweeps_withvelo.pkl
+                    - top_10_percent_frames_nuscenes_dbinfos_10sweeps_withvelo.pkl
                   PREPARE: {
                     filter_by_min_points: [
                         'car:5'
@@ -159,9 +163,10 @@ DATA_CONFIG:
 
     WaymoDataset:
         _BASE_CONFIG_: cfgs/dataset_configs/waymo_dataset.yaml
+        OTHER_CHANNEL: modes/16^
         CLASS_NAMES: ['Vehicle']
         SAMPLED_INTERVAL: {
-            'train': 5,
+            'train': 1,
             'test': 1
         }
         

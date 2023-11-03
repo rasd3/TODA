@@ -159,6 +159,7 @@ DATA_CONFIG:
 
     WaymoDataset:
         _BASE_CONFIG_: cfgs/dataset_configs/waymo_dataset.yaml
+        OTHER_CHANNEL: modes/16^
         CLASS_NAMES: ['Vehicle']
         SAMPLED_INTERVAL: {
             'train': 5,

@@ -76,8 +76,12 @@ DATA_CONFIG:
     DATASET_NAME: 'WaymoNusPolarMixDataset'
     CLASS_NAMES: ['car']
     MIX_TYPE: polarmix
+    MIX_INC_METHOD: corner_del
     POLARMIX_PROB: 0.2
     POLARMIX_RC_NUM: 1
+    POLARMIX_DEGREE: 1.570796
+    POLARMIX_DIS: FULL
+    POLARMIX_UPDATE_METHOD: [FIX, FIX, FIX]
     POINT_CLOUD_RANGE: [-54.0, -54.0, -5.0, 54.0, 54.0, 4.8]
 
     DATA_SPLIT: {
@@ -159,9 +163,10 @@ DATA_CONFIG:
 
     WaymoDataset:
         _BASE_CONFIG_: cfgs/dataset_configs/waymo_dataset.yaml
+        OTHER_CHANNEL: modes/16^
         CLASS_NAMES: ['Vehicle']
         SAMPLED_INTERVAL: {
-            'train': 5,
+            'train': 1,
             'test': 1
         }
         
