@@ -32,9 +32,15 @@ class NuScenesDataset(DatasetTemplate):
             with open(info_path, 'rb') as f:
                 infos = pickle.load(f)
                 nuscenes_infos.extend(infos)
-
         self.infos.extend(nuscenes_infos)
-        self.logger.info('Total samples for NuScenes dataset: %d' % (len(nuscenes_infos)))
+
+        if self.dataset_cfg.SAMPLED_INTERVAL[mode] > 1:
+            sampled_nuscenes_infos = []
+            for k in range(0, len(self.infos), self.dataset_cfg.SAMPLED_INTERVAL[mode]):
+                sampled_nuscenes_infos.append(self.infos[k])
+            self.infos = sampled_nuscenes_infos
+
+        self.logger.info('Total samples for NuScenes dataset: %d' % (len(self.infos)))
 
     def balanced_infos_resampling(self, infos):
         """
@@ -431,8 +437,12 @@ if __name__ == '__main__':
     parser.add_argument('--cfg_file', type=str, default=None, help='specify the config of dataset')
     parser.add_argument('--func', type=str, default='create_nuscenes_infos', help='')
     parser.add_argument('--version', type=str, default='v1.0-trainval', help='')
-    parser.add_argument('--percent', type=int, choices=[1, 5, 10, 20], help='specify the percentage of labeld NuScenes dataset')
+    parser.add_argument('--percent', type=str, choices=['0.5', '1', '5', '10', '20'], help='specify the percentage of labeld NuScenes dataset')
     args = parser.parse_args()
+    if '.' in args.percent:
+        args.percent = float(args.percent)
+    else:
+        args.percent = int(args.percent)
 
     if args.func == 'create_nuscenes_infos':
         dataset_cfg = EasyDict(yaml.safe_load(open(args.cfg_file)))
@@ -452,7 +462,7 @@ if __name__ == '__main__':
         )
         nuscenes_dataset.create_groundtruth_database(max_sweeps=dataset_cfg.MAX_SWEEPS)
     elif args.func == 'create_sub_nuscenes_gt_database':
-        assert args.percent in [1, 5, 10, 20]
+        assert args.percent in [0.5, 1, 5, 10, 20]
         dataset_cfg = EasyDict(yaml.safe_load(open(args.cfg_file)))
         ROOT_DIR = (Path(__file__).resolve().parent / '../../../').resolve()
         dataset_cfg.VERSION = args.version

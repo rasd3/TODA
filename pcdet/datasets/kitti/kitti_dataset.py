@@ -307,6 +307,9 @@ class KittiDataset(DatasetTemplate):
             if pred_scores.shape[0] == 0:
                 return pred_dict
 
+            if self.dataset_cfg.get('SHIFT_COOR', None):
+                pred_boxes[:, 0:3] -= self.dataset_cfg.SHIFT_COOR
+
             calib = batch_dict['calib'][batch_index]
             image_shape = batch_dict['image_shape'][batch_index].cpu().numpy()
             pred_boxes_camera = box_utils.boxes3d_lidar_to_kitti_camera(pred_boxes, calib)
@@ -393,6 +396,9 @@ class KittiDataset(DatasetTemplate):
             gt_boxes_camera = np.concatenate([loc, dims, rots[..., np.newaxis]], axis=1).astype(np.float32)
             gt_boxes_lidar = box_utils.boxes3d_kitti_camera_to_lidar(gt_boxes_camera, calib)
 
+            if self.dataset_cfg.get('SHIFT_COOR', None):
+                input_dict['gt_boxes'][:, 0:3] += self.dataset_cfg.SHIFT_COOR
+
             input_dict.update({
                 'gt_names': gt_names,
                 'gt_boxes': gt_boxes_lidar
@@ -410,6 +416,8 @@ class KittiDataset(DatasetTemplate):
                 pts_rect = calib.lidar_to_rect(points[:, 0:3])
                 fov_flag = self.get_fov_flag(pts_rect, img_shape, calib)
                 points = points[fov_flag]
+            if self.dataset_cfg.get('SHIFT_COOR', None):
+                points[:, 0:3] += np.array(self.dataset_cfg.SHIFT_COOR, dtype=np.float32)
             input_dict['points'] = points
 
         if "images" in get_item_list:
