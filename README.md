@@ -1,7 +1,7 @@
 # TODA
 
 
-This is official implementation of [Semi-Supervised Domain Adaptation Using Target-Oriented Domain Augmentation for 3D Object Detection](https://arxiv.org/abs/2406.11313), accpted to **IEEE Transaction on Intelligent Vehicles.** Our paper prospose novel two-stage SSDA framework for 3D object detection. The proposed TODA achieves SOTA on Waymo to nuScenes domain adaptation benchmarks, attains performances on par with the *Oracle* performance utilizing merely **5% of labeled data** in the target domain
+This is official implementation of [Semi-Supervised Domain Adaptation Using Target-Oriented Domain Augmentation for 3D Object Detection](https://arxiv.org/abs/2406.11313), accpted to **IEEE Transaction on Intelligent Vehicles.** Our paper prospose novel two-stage SSDA framework for 3D object detection. The proposed TODA achieves SOTA on Waymo to nuScenes domain adaptation benchmarks, attains performances on par with the *Oracle* performance utilizing merely **5% of labeled data** in the target domain.
 
 
 
