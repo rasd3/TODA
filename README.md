@@ -11,7 +11,7 @@ Changsoo Park<sup>2</sup> &nbsp;&nbsp;
 Hyung won Kim<sup>2</sup>&nbsp;&nbsp;
 Inho Lim<sup>2</sup>&nbsp;&nbsp;
 Christopher Chang<sup>2</sup>&nbsp;&nbsp;
-Jun Won Choi<sup>3</sup>
+[Jun Won Choi](https://spa.snu.ac.kr/)<sup>3</sup>
 
 <div>
 <sup>1</sup> Hanyang University
@@ -26,6 +26,7 @@ Jun Won Choi<sup>3</sup>
 This is official implementation of [Semi-Supervised Domain Adaptation Using Target-Oriented Domain Augmentation for 3D Object Detection](https://arxiv.org/abs/2406.11313). We prospose novel two-stage SSDA framework for 3D object detection TODA. TODA achieves SOTA on Waymo to nuScenes domain adaptation benchmarks, attains performances on par with the *Oracle* performance utilizing merely **5% of labeled data** in the target domain. 
 
 ![](./fig/comp.png)
+<img src="./fig/comp.png" alt="Compressed Image" width="500">
 
 
 **Abstract:** 3D object detection is crucial for applications like autonomous driving and robotics. However, in real-world environments, variations in sensor data distribution due to sensor upgrades, weather changes, and geographic differences can adversely affect detection performance. Semi-Supervised Domain Adaptation (SSDA) aims to mitigate these challenges by transferring knowledge from a source domain, abundant in labeled data, to a target domain where labels are scarce. This paper presents a new SSDA method referred to as Target-Oriented Domain Augmentation (TODA) specifically tailored for LiDAR-based 3D object detection. TODA efficiently utilizes all available data, including labeled data in the source domain, and both labeled data and unlabeled data in the target domain to enhance domain adaptation performance. TODA consists of two stages: TargetMix and AdvMix. TargetMix employs mixing augmentation accounting for LiDAR sensor characteristics to facilitate feature alignment between the source-domain and target-domain. AdvMix applies point-wise adversarial augmentation with mixing augmentation, which perturbs the unlabeled data to align the features within both labeled and unlabeled data in the target domain. Our experiments conducted on the challenging domain adaptation tasks demonstrate that TODA outperforms existing domain adaptation techniques designed for 3D object detection by significant margins.
