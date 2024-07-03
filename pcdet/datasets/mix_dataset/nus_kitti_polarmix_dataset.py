@@ -8,7 +8,7 @@ from pcdet.datasets import CutMixDatasetTemplate
 from pcdet.utils import box_utils
 
 from ...ops.roiaware_pool3d import roiaware_pool3d_utils
-from ...utils import common_utils
+from ...utils import box_utils, calibration_kitti, common_utils, object3d_kitti
 
 class NusKittiPolarMixDataset(CutMixDatasetTemplate):
     def __init__(self, dataset_cfg=None, training=True, dataset_names=None, logger=None):
@@ -22,6 +22,8 @@ class NusKittiPolarMixDataset(CutMixDatasetTemplate):
 
         # for Kitti
         self.include_kitti_data(self.mode)
+        self.kitti_split = self.dataset_cfg['KittiDataset'].DATA_SPLIT[self.mode]
+        self.kitti_root_split_path = self.root_path_target / ('training' if self.kitti_split != 'test' else 'testing')
 
         self.logger.info('Total samples for Kitti: %d' % (len(self.kitti_infos)))
         self.logger.info('Total samples for NuScenes: %d' % (len(self.nus_infos)))
@@ -39,7 +41,7 @@ class NusKittiPolarMixDataset(CutMixDatasetTemplate):
         nuscenes_infos = []
 
         for info_path in self.dataset_cfg['NuScenesDataset'].INFO_PATH[mode]:
-            info_path = self.root_path_target / info_path
+            info_path = self.root_path_source / info_path
             if not info_path.exists():
                 self.logger.info(f'NuScenesDataset info path: {info_path} doesnt exist!')
                 continue
@@ -51,7 +53,7 @@ class NusKittiPolarMixDataset(CutMixDatasetTemplate):
 
     def get_lidar_with_sweeps(self, index, max_sweeps=1):
         info = self.nus_infos[index % len(self.nus_infos)]
-        lidar_path = self.root_path_target / info['lidar_path']
+        lidar_path = self.root_path_source / info['lidar_path']
         points = np.fromfile(str(lidar_path), dtype=np.float32, count=-1).reshape([-1, 5])[:, :4]
 
         sweep_points_list = [points]
@@ -73,7 +75,7 @@ class NusKittiPolarMixDataset(CutMixDatasetTemplate):
             mask = ~((np.abs(points[:, 0]) < center_radius) & (np.abs(points[:, 1]) < center_radius))
             return points[mask]
 
-        lidar_path = self.root_path_target / sweep_info['lidar_path']
+        lidar_path = self.root_path_source / sweep_info['lidar_path']
         points_sweep = np.fromfile(str(lidar_path), dtype=np.float32, count=-1).reshape([-1, 5])[:, :4]
         points_sweep = remove_ego_points(points_sweep).T
         if sweep_info['transform_matrix'] is not None:
@@ -85,13 +87,18 @@ class NusKittiPolarMixDataset(CutMixDatasetTemplate):
         cur_times = sweep_info['time_lag'] * np.ones((1, points_sweep.shape[1]))
         return points_sweep.T, cur_times.T
 
+    def get_calib(self, idx):
+        calib_file = self.kitti_root_split_path / 'calib' / ('%s.txt' % idx)
+        assert calib_file.exists()
+        return calibration_kitti.Calibration(calib_file)
+
     def include_kitti_data(self, mode):
         if self.logger is not None:
             self.logger.info('Loading KITTI dataset')
         kitti_infos = []
 
-        for info_path in self.dataset_cfg.INFO_PATH[mode]:
-            info_path = self.root_path / info_path
+        for info_path in self.dataset_cfg['KittiDataset'].INFO_PATH[mode]:
+            info_path = self.root_path_target / info_path
             if not info_path.exists():
                 continue
             with open(info_path, 'rb') as f:
@@ -104,7 +111,7 @@ class NusKittiPolarMixDataset(CutMixDatasetTemplate):
             self.logger.info('Total samples for KITTI dataset: %d' % (len(kitti_infos)))
 
     def get_lidar(self, idx):
-        lidar_file = self.root_split_path / 'velodyne' / ('%s.bin' % idx)
+        lidar_file = self.kitti_root_split_path / 'velodyne' / ('%s.bin' % idx)
         assert lidar_file.exists()
         return np.fromfile(str(lidar_file), dtype=np.float32).reshape(-1, 4)
 
@@ -136,7 +143,7 @@ class NusKittiPolarMixDataset(CutMixDatasetTemplate):
 
         prob = np.random.random(1)
         if prob < self.dataset_cfg.POLARMIX_PROB:
-            kitti_info = copy.deepcopy(self.kitti_infos[index % len(self.nuscenes_infos)])
+            kitti_info = copy.deepcopy(self.kitti_infos[index % len(self.kitti_infos)])
             nus_info = copy.deepcopy(self.nus_infos[index % len(self.nus_infos)])
 
             # for nus
@@ -184,7 +191,7 @@ class NusKittiPolarMixDataset(CutMixDatasetTemplate):
                 'calib': calib,
             }
 
-            if 'annos' in info:
+            if 'annos' in kitti_info:
                 annos = kitti_info['annos']
                 annos = common_utils.drop_info_with_name(annos, name='DontCare')
                 loc, dims, rots = annos['location'], annos['dimensions'], annos['rotation_y']
@@ -192,28 +199,26 @@ class NusKittiPolarMixDataset(CutMixDatasetTemplate):
                 gt_boxes_camera = np.concatenate([loc, dims, rots[..., np.newaxis]], axis=1).astype(np.float32)
                 gt_boxes_lidar = box_utils.boxes3d_kitti_camera_to_lidar(gt_boxes_camera, calib)
 
-                if self.dataset_cfg.get('SHIFT_COOR', None):
-                    kitti_input_dict['gt_boxes'][:, 0:3] += self.dataset_cfg.SHIFT_COOR
 
                 kitti_input_dict.update({
                     'gt_names': gt_names,
                     'gt_boxes': gt_boxes_lidar
                 })
+
+                if self.dataset_cfg['KittiDataset'].get('SHIFT_COOR', None):
+                    kitti_input_dict['gt_boxes'][:, 0:3] += self.dataset_cfg['KittiDataset'].SHIFT_COOR
+
                 if "gt_boxes2d" in get_item_list:
                     kitti_input_dict['gt_boxes2d'] = annos["bbox"]
 
-                road_plane = self.get_road_plane(sample_idx)
-                if road_plane is not None:
-                    kitti_input_dict['road_plane'] = road_plane
-
             if "points" in get_item_list:
                 kitti_points = self.get_lidar(sample_idx)
-                if self.dataset_cfg.FOV_POINTS_ONLY:
+                if self.dataset_cfg['KittiDataset'].FOV_POINTS_ONLY:
                     pts_rect = calib.lidar_to_rect(points[:, 0:3])
                     fov_flag = self.get_fov_flag(pts_rect, img_shape, calib)
-                    points = points[fov_flag]
-                if self.dataset_cfg.get('SHIFT_COOR', None):
-                    points[:, 0:3] += np.array(self.dataset_cfg.SHIFT_COOR, dtype=np.float32)
+                    kitti_points = points[fov_flag]
+                if self.dataset_cfg['KittiDataset'].get('SHIFT_COOR', None):
+                    kitti_points[:, 0:3] += np.array(self.dataset_cfg['KittiDataset'].SHIFT_COOR, dtype=np.float32)
                 kitti_input_dict['points'] = kitti_points
 
             if "images" in get_item_list:
@@ -234,18 +239,20 @@ class NusKittiPolarMixDataset(CutMixDatasetTemplate):
             # data_dict = data_dict_list[1]
 
         else:
-            if index < len(self.nuscenes_infos):
+            if index < len(self.nus_infos):
                 nus_info = copy.deepcopy(self.nus_infos[index])
                 nus_points = self.get_lidar_with_sweeps(index, max_sweeps=self.dataset_cfg['NuScenesDataset'].MAX_SWEEPS)
                 if self.dataset_cfg['NuScenesDataset'].get('SHIFT_COOR', None):
                     nus_points[:, 0:3] += np.array(self.dataset_cfg['NuScenesDataset'].SHIFT_COOR, dtype=np.float32)
-                    nus_input_dict['shift_coor'] = self.dataset_cfg['NuScenesDataset'].SHIFT_COOR
 
                 nus_input_dict = {
                     'points': nus_points,
                     'frame_id': Path(nus_info['lidar_path']).stem,
                     'metadata': {'token': nus_info['token']}
                 }
+
+                if self.dataset_cfg['NuScenesDataset'].get('SHIFT_COOR', None):
+                    nus_input_dict['shift_coor'] = self.dataset_cfg['NuScenesDataset'].SHIFT_COOR
 
                 if 'gt_boxes' in nus_info:
                     if self.dataset_cfg['NuScenesDataset'].get('FILTER_MIN_POINTS_IN_GT', False):
@@ -272,19 +279,19 @@ class NusKittiPolarMixDataset(CutMixDatasetTemplate):
                 data_dict = self.prepare_ori_data(nus_input_dict, source=True)
 
             else:
-                kitti_info = copy.deepcopy(self.kitti_infos[index - len(self.nuscenes_infos)])
+                kitti_info = copy.deepcopy(self.kitti_infos[index - len(self.nus_infos)])
 
                 sample_idx = kitti_info['point_cloud']['lidar_idx']
                 img_shape = kitti_info['image']['image_shape']
                 calib = self.get_calib(sample_idx)
-                get_item_list = self.dataset_cfg.get('GET_ITEM_LIST', ['points'])
+                get_item_list = self.dataset_cfg['KittiDataset'].get('GET_ITEM_LIST', ['points'])
 
                 kitti_input_dict = {
                     'frame_id': sample_idx,
                     'calib': calib,
                 }
 
-                if 'annos' in info:
+                if 'annos' in kitti_info:
                     annos = kitti_info['annos']
                     annos = common_utils.drop_info_with_name(annos, name='DontCare')
                     loc, dims, rots = annos['location'], annos['dimensions'], annos['rotation_y']
@@ -292,28 +299,25 @@ class NusKittiPolarMixDataset(CutMixDatasetTemplate):
                     gt_boxes_camera = np.concatenate([loc, dims, rots[..., np.newaxis]], axis=1).astype(np.float32)
                     gt_boxes_lidar = box_utils.boxes3d_kitti_camera_to_lidar(gt_boxes_camera, calib)
 
-                    if self.dataset_cfg.get('SHIFT_COOR', None):
-                        kitti_input_dict['gt_boxes'][:, 0:3] += self.dataset_cfg.SHIFT_COOR
 
                     kitti_input_dict.update({
                         'gt_names': gt_names,
                         'gt_boxes': gt_boxes_lidar
                     })
+                    if self.dataset_cfg['KittiDataset'].get('SHIFT_COOR', None):
+                        kitti_input_dict['gt_boxes'][:, 0:3] += self.dataset_cfg['KittiDataset'].SHIFT_COOR
                     if "gt_boxes2d" in get_item_list:
                         kitti_input_dict['gt_boxes2d'] = annos["bbox"]
 
-                    road_plane = self.get_road_plane(sample_idx)
-                    if road_plane is not None:
-                        kitti_input_dict['road_plane'] = road_plane
-
                 if "points" in get_item_list:
                     kitti_points = self.get_lidar(sample_idx)
-                    if self.dataset_cfg.FOV_POINTS_ONLY:
+                    if self.dataset_cfg['KittiDataset'].FOV_POINTS_ONLY:
                         pts_rect = calib.lidar_to_rect(points[:, 0:3])
                         fov_flag = self.get_fov_flag(pts_rect, img_shape, calib)
-                        points = points[fov_flag]
-                    if self.dataset_cfg.get('SHIFT_COOR', None):
-                        points[:, 0:3] += np.array(self.dataset_cfg.SHIFT_COOR, dtype=np.float32)
+                        kitti_points = points[fov_flag]
+
+                    if self.dataset_cfg['KittiDataset'].get('SHIFT_COOR', None):
+                        kitti_points[:, 0:3] += np.array(self.dataset_cfg['KittiDataset'].SHIFT_COOR, dtype=np.float32)
                     kitti_input_dict['points'] = kitti_points
 
                 if "images" in get_item_list:

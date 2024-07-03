@@ -70,4 +70,3 @@ def intra_domain_point_mixup_cd(data_dict_1, data_dict_2, alpha=None):
     new_data_dict['gt_boxes'] = np.concatenate((data_dict_1['gt_boxes'], valid_boxes), axis=0)
 
     return new_data_dict
-    

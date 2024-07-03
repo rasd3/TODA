@@ -4,6 +4,7 @@ from torch.utils.data import DistributedSampler as _DistributedSampler
 
 from pcdet.utils import common_utils
 
+from .dataset_cl import DatasetTemplateCL
 from .dataset import DatasetTemplate
 from .kitti.kitti_dataset import KittiDataset
 from .nuscenes.nuscenes_dataset import NuScenesDataset
@@ -15,10 +16,15 @@ from .two_dataset import CutMixDatasetTemplate
 from .mix_dataset.waymo_nus_cutmix_dataset import WaymoNusCutMixDataset
 from .mix_dataset.waymo_nus_polarmix_dataset import WaymoNusPolarMixDataset
 from .mix_dataset.waymo_nus_lasermix_dataset import WaymoNusLaserMixDataset
+from .mix_dataset.nus_kitti_cutmix_dataset import NusKittiCutMixDataset
+from .mix_dataset.nus_kitti_polarmix_dataset import NusKittiPolarMixDataset
 from .nuscenes.nuscenes_mixup_dataset import NuScenesMixUpDataset
+from .nuscenes.nuscenes_mixup_adv_dataset import NuScenesMixUpAdvDataset
+from .kitti.kitti_mixup_adv_dataset import KittiMixUpAdvDataset
 
 __all__ = {
     'DatasetTemplate': DatasetTemplate,
+    'DatasetTemplateCL': DatasetTemplateCL,
     'KittiDataset': KittiDataset,
     'NuScenesDataset': NuScenesDataset,
     'WaymoDataset': WaymoDataset,
@@ -26,9 +32,13 @@ __all__ = {
     'LyftDataset': LyftDataset, 
     'CutMixDatasetTemplate': CutMixDatasetTemplate, 
     'WaymoNusCutMixDataset': WaymoNusCutMixDataset, 
+    'KittiMixUpAdvDataset': KittiMixUpAdvDataset,
     'WaymoNusPolarMixDataset': WaymoNusPolarMixDataset, 
     'WaymoNusLaserMixDataset': WaymoNusLaserMixDataset, 
     'NuScenesMixUpDataset': NuScenesMixUpDataset,
+    'NuScenesMixUpAdvDataset': NuScenesMixUpAdvDataset
+    'NusKittiCutMixDataset': NusKittiCutMixDataset,
+    'NusKittiPolarMixDataset': NusKittiPolarMixDataset,
 }
 
 

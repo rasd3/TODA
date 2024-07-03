@@ -230,6 +230,88 @@ class NuScenesDataset(DatasetTemplate):
         return annos
 
     def evaluation(self, det_annos, class_names, **kwargs):
+        if kwargs['eval_metric'] == 'kitti':
+            eval_det_annos = copy.deepcopy(det_annos)
+            eval_gt_annos = copy.deepcopy(self.infos)
+            return self.kitti_eval(eval_det_annos, eval_gt_annos, class_names)
+        elif kwargs['eval_metric'] == 'nuscenes':
+            return self.nuscene_eval(det_annos, class_names, **kwargs)
+        else:
+            raise NotImplementedError
+
+    def kitti_eval(self, eval_det_annos, eval_gt_annos, class_names):
+        from ..kitti.kitti_object_eval_python import eval as kitti_eval
+
+        map_name_to_kitti = {
+            'car': 'Car',
+            'pedestrian': 'Pedestrian',
+            'truck': 'Truck',
+        }
+
+        def transform_to_kitti_format(annos, info_with_fakelidar=False, is_gt=False):
+            for anno in annos:
+                if 'name' not in anno:
+                    anno['name'] = anno['gt_names']
+                    anno.pop('gt_names')
+
+                for k in range(anno['name'].shape[0]):
+                    if anno['name'][k] in map_name_to_kitti:
+                        anno['name'][k] = map_name_to_kitti[anno['name'][k]]
+                    else:
+                        anno['name'][k] = 'Person_sitting'
+
+                if 'boxes_lidar' in anno:
+                    gt_boxes_lidar = anno['boxes_lidar'].copy()
+                else:
+                    gt_boxes_lidar = anno['gt_boxes'].copy()
+
+                # filter by fov
+                if is_gt and self.dataset_cfg.get('GT_FILTER', None):
+                    if self.dataset_cfg.GT_FILTER.get('FOV_FILTER', None):
+                        fov_gt_flag = self.extract_fov_gt(
+                            gt_boxes_lidar, self.dataset_cfg['FOV_DEGREE'], self.dataset_cfg['FOV_ANGLE']
+                        )
+                        gt_boxes_lidar = gt_boxes_lidar[fov_gt_flag]
+                        anno['name'] = anno['name'][fov_gt_flag]
+
+                anno['bbox'] = np.zeros((len(anno['name']), 4))
+                anno['bbox'][:, 2:4] = 50  # [0, 0, 50, 50]
+                anno['truncated'] = np.zeros(len(anno['name']))
+                anno['occluded'] = np.zeros(len(anno['name']))
+
+                if len(gt_boxes_lidar) > 0:
+                    if info_with_fakelidar:
+                        gt_boxes_lidar = box_utils.boxes3d_kitti_fakelidar_to_lidar(gt_boxes_lidar)
+
+                    gt_boxes_lidar[:, 2] -= gt_boxes_lidar[:, 5] / 2
+                    anno['location'] = np.zeros((gt_boxes_lidar.shape[0], 3))
+                    anno['location'][:, 0] = -gt_boxes_lidar[:, 1]  # x = -y_lidar
+                    anno['location'][:, 1] = -gt_boxes_lidar[:, 2]  # y = -z_lidar
+                    anno['location'][:, 2] = gt_boxes_lidar[:, 0]  # z = x_lidar
+                    dxdydz = gt_boxes_lidar[:, 3:6]
+                    anno['dimensions'] = dxdydz[:, [0, 2, 1]]  # lwh ==> lhw
+                    anno['rotation_y'] = -gt_boxes_lidar[:, 6] - np.pi / 2.0
+                    anno['alpha'] = -np.arctan2(-gt_boxes_lidar[:, 1], gt_boxes_lidar[:, 0]) + anno['rotation_y']
+                else:
+                    anno['location'] = anno['dimensions'] = np.zeros((0, 3))
+                    anno['rotation_y'] = anno['alpha'] = np.zeros(0)
+
+        transform_to_kitti_format(eval_det_annos)
+        transform_to_kitti_format(eval_gt_annos, info_with_fakelidar=False, is_gt=True)
+
+        kitti_class_names = []
+        for x in class_names:
+            if x in map_name_to_kitti:
+                kitti_class_names.append(map_name_to_kitti[x])
+            else:
+                kitti_class_names.append('Person_sitting')
+        ap_result_str, ap_dict = kitti_eval.get_official_eval_result(
+            gt_annos=eval_gt_annos, dt_annos=eval_det_annos, current_classes=kitti_class_names
+        )
+        return ap_result_str, ap_dict
+
+
+    def nuscene_eval(self, det_annos, class_names, **kwargs):
         import json
         from nuscenes.nuscenes import NuScenes
         from . import nuscenes_utils

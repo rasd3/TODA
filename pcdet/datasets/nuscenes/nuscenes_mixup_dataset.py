@@ -91,6 +91,21 @@ class NuScenesMixUpDataset(DatasetTemplate):
 
         return sampled_infos
 
+    def get_sweep(self, sweep_info):
+        def remove_ego_points(points, center_radius=1.0):
+            mask = ~((np.abs(points[:, 0]) < center_radius) & (np.abs(points[:, 1]) < center_radius))
+            return points[mask]
+
+        lidar_path = self.root_path / sweep_info['lidar_path']
+        points_sweep = np.fromfile(str(lidar_path), dtype=np.float32, count=-1).reshape([-1, 5])[:, :4]
+        points_sweep = remove_ego_points(points_sweep).T
+        if sweep_info['transform_matrix'] is not None:
+            num_points = points_sweep.shape[1]
+            points_sweep[:3, :] = sweep_info['transform_matrix'].dot(
+                np.vstack((points_sweep[:3, :], np.ones(num_points))))[:3, :]
+
+        cur_times = sweep_info['time_lag'] * np.ones((1, points_sweep.shape[1]))
+        return points_sweep.T, cur_times.T
 
     def get_lidar_with_sweeps(self, index, max_sweeps=1):
         info = self.infos[index]
@@ -220,8 +235,8 @@ class NuScenesMixUpDataset(DatasetTemplate):
             elif self.dataset_cfg.MIXUP_TYPE == 'ps_gt':
                 idx1 = np.random.randint(len(self.ps_infos))
                 idx2 = np.random.randint(len(self.gt_infos))
-                nus_infos_1 = copy.deepcopy(self.ps_infos[idx1])
-                nus_infos_2 = copy.deepcopy(self.gt_infosp[idx2])
+                nus_info_1 = copy.deepcopy(self.ps_infos[idx1])
+                nus_info_2 = copy.deepcopy(self.gt_infos[idx2])
                 nus_points_1 = self.get_ps_lidar_with_sweeps(idx1, max_sweeps=self.dataset_cfg.MAX_SWEEPS)
                 nus_points_2 = self.get_gt_lidar_with_sweeps(idx2, max_sweeps=self.dataset_cfg.MAX_SWEEPS)
             elif self.dataset_cfg.MIXUP_TYPE == 'gt_gt+ps':

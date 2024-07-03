@@ -273,8 +273,8 @@ class KittiDataset(DatasetTemplate):
         with open(db_info_save_path, 'wb') as f:
             pickle.dump(all_db_infos, f)
 
-    @staticmethod
-    def generate_prediction_dicts(batch_dict, pred_dicts, class_names, output_path=None):
+    #  @staticmethod
+    def generate_prediction_dicts(self, batch_dict, pred_dicts, class_names, output_path=None):
         """
         Args:
             batch_dict:
@@ -396,13 +396,13 @@ class KittiDataset(DatasetTemplate):
             gt_boxes_camera = np.concatenate([loc, dims, rots[..., np.newaxis]], axis=1).astype(np.float32)
             gt_boxes_lidar = box_utils.boxes3d_kitti_camera_to_lidar(gt_boxes_camera, calib)
 
-            if self.dataset_cfg.get('SHIFT_COOR', None):
-                input_dict['gt_boxes'][:, 0:3] += self.dataset_cfg.SHIFT_COOR
 
             input_dict.update({
                 'gt_names': gt_names,
                 'gt_boxes': gt_boxes_lidar
             })
+            if self.dataset_cfg.get('SHIFT_COOR', None):
+                input_dict['gt_boxes'][:, 0:3] += self.dataset_cfg.SHIFT_COOR
             if "gt_boxes2d" in get_item_list:
                 input_dict['gt_boxes2d'] = annos["bbox"]
 
