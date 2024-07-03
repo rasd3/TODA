@@ -18,6 +18,10 @@ Jun Won Choi<sup>3</sup>
 <sup>2</sup> Kakao Mobility Corp
 <sup>3</sup> Seoul National Univeristy
 </div>
+<br/>
+
+[![arXiv](https://img.shields.io/badge/arXiv-2406.11313-darkred)](https://arxiv.org/abs/2406.11313)
+
 </div>
 
 <br/>
