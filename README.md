@@ -24,10 +24,9 @@ Jun Won Choi<sup>3</sup>
 
 </div>
 
-<br/>
 
 
-This is official implementation of [Semi-Supervised Domain Adaptation Using Target-Oriented Domain Augmentation for 3D Object Detection](https://arxiv.org/abs/2406.11313). We prospose novel two-stage SSDA framework for 3D object detection TODA. TODA achieves SOTA on Waymo to nuScenes domain adaptation benchmarks, attains performances on par with the *Oracle* performance utilizing merely **5% of labeled data** in the target domain. 
+We prospose novel two-stage SSDA framework for 3D object detection TODA. TODA achieves SOTA on Waymo to nuScenes domain adaptation benchmarks, attains performances on par with the *Oracle* performance utilizing merely **5% of labeled data** in the target domain. 
 
 <div align='center'>
 <img src="./fig/comp.png" alt="Compressed Image" width="600">
